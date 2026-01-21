@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
-import axios from "axios";
+import { useAuth0 } from "@auth0/auth0-react";
+
 
 import Loading from "./Loading";
+import { api } from "../api/axios";
 
 interface CityWeather {
   city: string;
@@ -16,38 +18,47 @@ interface CityWeather {
 }
 
 const WeatherDashboard = () => {
+  const { getAccessTokenSilently, logout } = useAuth0();
   const [darkMode, setDarkMode] = useState(false);
   const [citiesData, setCitiesData] = useState<CityWeather[]>([]);
   const [selectedCity, setSelectedCity] = useState<CityWeather | null>(null);
   const [loading, setLoading] = useState(true);
+ 
+
   useEffect(() => {
-    const fetchWeather = async () => {
-      try {
-        const res = await axios.get("http://localhost:8081/api/weather/dashboard");
-        let cities: CityWeather[] = [];
+  const fetchWeather = async () => {
+    try {
+      const token = await getAccessTokenSilently();
+      console.log("Access Token:", token);
+     const res = await api.get("/weather/dashboard", {
+  headers: {
+    Authorization: `Bearer ${token}`,
+  },
+});
 
-        if (Array.isArray(res.data)) {
-          cities = res.data;
-        } else if (res.data && Array.isArray(res.data.data)) {
-          cities = res.data.data;
-        } else {
-          console.error("Unexpected API response:", res.data);
-        }
 
-        if (cities.length > 0) {
-          cities.sort((a, b) => a.rank - b.rank);
-          setCitiesData(cities);
-          setSelectedCity(cities[0]);
-          setLoading(false);
-        }
-      } catch (err) {
-        console.error("Failed to fetch weather data:", err);
-        setLoading(false);
+      let cities: CityWeather[] = [];
+
+      if (Array.isArray(res.data)) {
+        cities = res.data;
+      } else if (res.data && Array.isArray(res.data.data)) {
+        cities = res.data.data;
       }
-    };
 
-    fetchWeather();
-  }, []);
+      cities.sort((a, b) => a.rank - b.rank);
+
+      setCitiesData(cities);
+      setSelectedCity(cities[0] || null);
+    } catch (err) {
+      console.error("Failed to fetch weather data:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchWeather();
+}, [getAccessTokenSilently]);
+
 
   return (
     <>
@@ -68,15 +79,22 @@ const WeatherDashboard = () => {
           </div>
 
           <div className="flex gap-4">
-            <button
+            {/* <button
               onClick={() => setDarkMode(!darkMode)}
               className="px-4 py-2 rounded-lg bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900 transition"
             >
               {darkMode ? "☀ Light" : "🌙 Dark"}
-            </button>
+            </button> */}
 
             <button
-              onClick={() => (window.location.href = "http://localhost:8081/logout")}
+              onClick={() =>
+  logout({
+    logoutParams: {
+      returnTo: window.location.origin,
+    },
+  })
+}
+
               className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition"
             >
               Logout
@@ -183,9 +201,9 @@ const WeatherDashboard = () => {
               </div>
 
               {/* Graph Placeholder */}
-              <div className="mt-6 h-40 rounded-xl bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-gray-500 dark:text-gray-300">
+              {/* <div className="mt-6 h-40 rounded-xl bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-gray-500 dark:text-gray-300">
                 Weather Graph
-              </div>
+              </div> */}
             </div>
           )}
         </div>
