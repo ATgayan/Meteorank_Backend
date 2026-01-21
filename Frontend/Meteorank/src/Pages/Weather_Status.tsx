@@ -22,13 +22,22 @@ const WeatherDashboard = () => {
   const [darkMode, setDarkMode] = useState(false);
   const [citiesData, setCitiesData] = useState<CityWeather[]>([]);
   const [selectedCity, setSelectedCity] = useState<CityWeather | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
  
 
   useEffect(() => {
   const fetchWeather = async () => {
+    console.log("Fetching weather data...");
     try {
-      const token = await getAccessTokenSilently();
+      
+     const token = await getAccessTokenSilently({
+  authorizationParams: {
+    audience: "https://weather-api", 
+    scope: "openid profile email",
+  },
+});
+console.log(token);
+
       console.log("Access Token:", token);
      const res = await api.get("/weather/dashboard", {
   headers: {
@@ -48,6 +57,7 @@ const WeatherDashboard = () => {
       cities.sort((a, b) => a.rank - b.rank);
 
       setCitiesData(cities);
+      console.log("Fetched Cities Data:", cities);
       setSelectedCity(cities[0] || null);
     } catch (err) {
       console.error("Failed to fetch weather data:", err);
@@ -90,7 +100,8 @@ const WeatherDashboard = () => {
               onClick={() =>
   logout({
     logoutParams: {
-      returnTo: window.location.origin,
+      returnTo: window.location.origin + "/login",
+      
     },
   })
 }
